@@ -1,0 +1,237 @@
+version: "3.2"
+
+services:
+  # The registry for all local images
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      # REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+      # REGISTRY_HTTP_TLS_KEY: /certs/domain.key
+      # REGISTRY_AUTH: htpasswd
+      # REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      # REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_HTTP_SECRET: "${REGISTRY_SECRET}"
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_PROXY_USERNAME: circle4regentmarkets
+      REGISTRY_PROXY_PASSWORD: "${DOCKERHUB_PASSWORD}"
+    volumes:
+      - ./registry/data:/var/lib/registry
+      - ./registry/certs:/certs:ro
+      - ./registry/auth:/auth
+
+  # Full Redis cluster - add more nodes to scale horizontally, ensure that
+  # the REDIS_NODES env var is correctly populated to make sure they
+  # are all picked up correctly. Note that this should be able to adapt
+  # to docker networking changes - on restart the nodes are rediscovered.
+  redis-node-0:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-0:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  redis-node-1:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-1:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  redis-node-2:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-2:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  redis-node-3:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-3:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  redis-node-4:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-4:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  redis-node-5:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-5:/bitnami
+    environment:
+      - "REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+  # ... end of Redis node list here
+
+  # The proxy is used for external connections to our
+  # Redis cluster. It bootstraps from the first node.
+  redis-proxy:
+    build: redis-cluster-proxy
+    ports:
+      - "6372:7777"
+    networks:
+      - default
+      - redis
+    volumes:
+      - ./redis-proxy.conf:/etc/redis-proxy.conf:ro
+    depends_on:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    command:
+      - "-c"
+      - "/etc/redis-proxy.conf"
+      - "redis-node-0:6379"
+
+  # Internal database shards
+  pg-node-0:
+    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+    ports:
+      - 5432
+    volumes:
+      - pg-0-data:/bitnami/postgresql
+    networks:
+      - database
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=customdatabase
+      - REPMGR_PASSWORD=repmgrpassword
+      - REPMGR_PRIMARY_HOST=pg-node-0
+      - REPMGR_PRIMARY_PORT=5432
+      - REPMGR_PARTNER_NODES=pg-node-0:5432,pg-node-1:5432
+      - REPMGR_NODE_NAME=pg-node-0
+      - REPMGR_NODE_NETWORK_NAME=pg-node-0
+      - REPMGR_PORT_NUMBER=5432
+  pg-node-1:
+    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+    ports:
+      - 5432
+    volumes:
+      - pg-1-data:/bitnami/postgresql
+    networks:
+      - database
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=customdatabase
+      - REPMGR_PASSWORD=repmgrpassword
+      - REPMGR_PRIMARY_HOST=pg-node-0
+      - REPMGR_PRIMARY_PORT=5432
+      - REPMGR_PARTNER_NODES=pg-node-0:5432,pg-node-1:5432
+      - REPMGR_NODE_NAME=pg-node-1
+      - REPMGR_NODE_NETWORK_NAME=pg-node-1
+      - REPMGR_PORT_NUMBER=5432
+  # End of database shard list
+
+  # Start list of services
+
+  coffee-manager_api:
+    build: services/coffee-manager/api
+    restart: unless-stopped
+    environment:
+      MYRIAD_TRANSPORT: "redis://redis-node-0:6379"
+      MYRIAD_TRANSPORT_CLUSTER: "1"
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+    links:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/coffee-manager/api:/opt/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+
+  # End list of services
+
+volumes:
+  # Remember to keep this volume list up to date!
+  redis-cluster_data-0:
+  redis-cluster_data-1:
+  redis-cluster_data-2:
+  redis-cluster_data-3:
+  redis-cluster_data-4:
+  redis-cluster_data-5:
+  pg-0-data:
+  pg-1-data:
+  pg-2-data:
+  pg-3-data:
+  pg-4-data:
+  pg-5-data:
+
+networks:
+  default:
+  backend:
+  database:
+  redis:
