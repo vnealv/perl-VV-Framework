@@ -212,8 +212,9 @@ services:
       - redis-node-4
       - redis-node-5
     volumes:
-      - ./services/caffeine-manager/api:/opt/app/
+      - ./services/caffeine-manager/api:/app/
       - ./pg_service.conf:/root/.pg_service.conf:ro
+      - ./:/opt/app
 
   # End list of services
 

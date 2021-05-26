@@ -5,6 +5,7 @@ WORKDIR /opt/app
 
 RUN echo "installing apt and cpan deps" \
       && apt-get -y -q update \
+      && DEBIAN_FRONTEND=noninteractive \
       && apt-get -y -q --no-install-recommends install $(cat aptfile) \
       && cpanm -n --installdeps . \
       && rm -rf ~/.cpanm 
@@ -15,5 +16,4 @@ RUN echo "installing Framework" \
  && git clean -fd \
  && apt purge --autoremove -y
 
-
-ENTRYPOINT ["perl bin/vv-start.pl"]
+ ENTRYPOINT ["/bin/bash", "-c", "perl /opt/app/bin/vv-start.pl"]

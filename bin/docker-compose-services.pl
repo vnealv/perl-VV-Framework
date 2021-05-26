@@ -47,7 +47,7 @@ for my $category (@categories) {
             @{$args{environment}}{keys %env_hash} = values %env_hash;
         }
 
-        $args{volumes} = ["./$path:/opt/app/", './pg_service.conf:/root/.pg_service.conf:ro'];
+        $args{volumes} = ["./$path:/app/", './pg_service.conf:/root/.pg_service.conf:ro', "./:/opt/app"];
         if($config_path->exists) {
             my $cfg = LoadFile($config_path);
             push @services, {

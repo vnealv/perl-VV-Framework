@@ -1,10 +1,7 @@
 libreadline-dev
-build-essential
 make
 gcc
 git
 openssh-client
 wget
-libssl-dev
 libz-dev
-
