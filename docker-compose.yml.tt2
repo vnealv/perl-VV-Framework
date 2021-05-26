@@ -126,8 +126,9 @@ services:
 [%  END -%]
     restart: unless-stopped
     environment:
-      MYRIAD_TRANSPORT: "redis://redis-node-0:6379"
-      MYRIAD_TRANSPORT_CLUSTER: "1"
+[% FOREACH env IN service.environment -%]
+      [% env.key %]: "[% env.value %]"
+[% END -%]
 [%  IF service.ports -%]
     ports:
 [%   FOREACH port IN service.ports -%]

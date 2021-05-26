@@ -17,6 +17,13 @@ use List::UtilsBy qw(extract_by);
 use Log::Any qw($log);
 use Log::Any::Adapter qw(Stderr), log_level => 'info';
 
+my %default_env = (
+    TRANSPORT_CLUSTER  => "1",
+    TRANSPORT          => "redis://redis-node-0:6379",
+    LOG_LEVEL          => "info",
+    LIBRARY_PATH       => "/app/lib",
+);
+
 my $service_dir = path('services');
 my @categories = grep { $_->is_dir } $service_dir->children;
 my @services;
@@ -28,8 +35,18 @@ for my $category (@categories) {
         if($srv->child('Dockerfile')->exists) {
             $args{build} = $path;
         } else {
-            $args{image} = 'perl:5.26';
+            $args{image} = 'perl-vv-framework';
         }
+        
+        # Include additional environment variables.
+        @{$args{environment}}{keys %default_env} = values %default_env;
+        my $env = $srv->child('.env');
+        if ( $env->is_file ) {
+            my @env = $env->lines_utf8({ chomp => 1 });
+            my %env_hash = map { split /=/, $_, 2 } @env;
+            @{$args{environment}}{keys %env_hash} = values %env_hash;
+        }
+
         $args{volumes} = ["./$path:/opt/app/", './pg_service.conf:/root/.pg_service.conf:ro'];
         if($config_path->exists) {
             my $cfg = LoadFile($config_path);

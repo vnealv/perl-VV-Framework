@@ -192,12 +192,14 @@ services:
 
   # Start list of services
 
-  coffee-manager_api:
-    build: services/coffee-manager/api
+  caffeine-manager_api:
+    build: services/caffeine-manager/api
     restart: unless-stopped
     environment:
-      MYRIAD_TRANSPORT: "redis://redis-node-0:6379"
-      MYRIAD_TRANSPORT_CLUSTER: "1"
+      LIBRARY_PATH: "/app/lib"
+      LOG_LEVEL: "info"
+      TRANSPORT: "redis://redis-node-0:6379"
+      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"
@@ -210,7 +212,7 @@ services:
       - redis-node-4
       - redis-node-5
     volumes:
-      - ./services/coffee-manager/api:/opt/app/
+      - ./services/caffeine-manager/api:/opt/app/
       - ./pg_service.conf:/root/.pg_service.conf:ro
 
   # End list of services
