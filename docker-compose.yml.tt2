@@ -1,0 +1,171 @@
+[%
+# How many shards we have for each service. Note that Redis expects to be
+# an even number for main/replica pairing.
+DEFAULT REDIS_COUNT = 6,
+        PG_COUNT = 2;
+
+# This is where it gets interesting: each of our services
+# is defined as a name, a source, and some options. The same
+DEFAULT service_list = [
+ # Main API endpoint exposes websockets via nginx
+ { name => 'api', ports => [ 80 ], networks => [ 'database' ] }
+];
+
+REDIS_INDICES = [ 0 .. REDIS_COUNT ];
+CALL REDIS_INDICES.pop();
+PG_INDICES = [ 0 .. PG_COUNT ];
+CALL PG_INDICES.pop();
+
+-%]
+version: "3.2"
+
+services:
+  # The registry for all local images
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      # REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+      # REGISTRY_HTTP_TLS_KEY: /certs/domain.key
+      # REGISTRY_AUTH: htpasswd
+      # REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      # REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_HTTP_SECRET: "${REGISTRY_SECRET}"
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_PROXY_USERNAME: circle4regentmarkets
+      REGISTRY_PROXY_PASSWORD: "${DOCKERHUB_PASSWORD}"
+    volumes:
+      - ./registry/data:/var/lib/registry
+      - ./registry/certs:/certs:ro
+      - ./registry/auth:/auth
+
+  # Full Redis cluster - add more nodes to scale horizontally, ensure that
+  # the REDIS_NODES env var is correctly populated to make sure they
+  # are all picked up correctly. Note that this should be able to adapt
+  # to docker networking changes - on restart the nodes are rediscovered.
+[% redis_list = [ ];
+ FOREACH redis IN REDIS_INDICES;
+  redis_list.push("redis-node-$redis");
+ END
+-%]
+[% FOREACH redis IN REDIS_INDICES -%]
+  redis-node-[% redis %]:
+    extends:
+      file: redis.yml
+      service: redis-node
+    networks:
+      - redis
+      - default
+    volumes:
+      - redis-cluster_data-[% redis %]:/bitnami
+    environment:
+      - "REDIS_NODES=[% redis_list.join(' ') %]"
+      - "REDIS_CLUSTER_REPLICAS=0"
+      - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
+      - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
+      - "REDIS_DNS_RETRIES=30"
+
+[% END -%]
+  # ... end of Redis node list here
+
+  # The proxy is used for external connections to our
+  # Redis cluster. It bootstraps from the first node.
+  redis-proxy:
+    build: redis-cluster-proxy
+    ports:
+      - "6372:7777"
+    networks:
+      - default
+      - redis
+    volumes:
+      - ./redis-proxy.conf:/etc/redis-proxy.conf:ro
+    depends_on:
+[% FOREACH redis IN REDIS_INDICES -%]
+      - redis-node-[% redis %]
+[% END -%]
+    command:
+      - "-c"
+      - "/etc/redis-proxy.conf"
+      - "redis-node-0:6379"
+
+  # Internal database shards
+[% FOREACH idx IN PG_INDICES -%]
+  pg-node-[% idx %]:
+    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+    ports:
+      - 5432
+    volumes:
+      - pg-[% idx %]-data:/bitnami/postgresql
+    networks:
+      - database
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=customdatabase
+      - REPMGR_PASSWORD=repmgrpassword
+      - REPMGR_PRIMARY_HOST=pg-node-0
+      - REPMGR_PRIMARY_PORT=5432
+      - REPMGR_PARTNER_NODES=[% FOREACH partner IN PG_INDICES %]pg-node-[% partner %]:5432[% UNLESS loop.last %],[% END %][% END %]
+      - REPMGR_NODE_NAME=pg-node-[% idx %]
+      - REPMGR_NODE_NETWORK_NAME=pg-node-[% idx %]
+      - REPMGR_PORT_NUMBER=5432
+[% END -%]
+  # End of database shard list
+
+  # Start list of services
+
+[% FOREACH service IN service_list -%]
+  [% service.instance %]:
+[%  IF service.build -%]
+    build: [% service.build %]
+[%  ELSIF service.image -%]
+    image: [% service.image %]
+[%  END -%]
+    restart: unless-stopped
+    environment:
+      MYRIAD_TRANSPORT: "redis://redis-node-0:6379"
+      MYRIAD_TRANSPORT_CLUSTER: "1"
+[%  IF service.ports -%]
+    ports:
+[%   FOREACH port IN service.ports -%]
+      - "[% port %]"
+[%   END -%]
+[%  END -%]
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+[%  IF service.networks -%]
+[%   FOREACH network IN service.networks -%]
+      - "[% network %]"
+[%   END -%]
+[%  END -%]
+    links:
+[%  FOREACH redis IN REDIS_INDICES -%]
+      - redis-node-[% redis %]
+[%  END -%]
+    volumes:
+[% FOREACH volume IN service.volumes -%]
+      - [% volume %]
+[% END -%]
+[% END -%]
+
+  # End list of services
+
+volumes:
+  # Remember to keep this volume list up to date!
+[% FOREACH redis IN REDIS_INDICES -%]
+  redis-cluster_data-[% redis %]:
+[% END -%]
+[% FOREACH idx IN REDIS_INDICES -%]
+  pg-[% idx %]-data:
+[% END -%]
+
+networks:
+  default:
+  backend:
+  database:
+  redis:
