@@ -23,18 +23,20 @@ has $redis_cluster;
 has $db_uri;
 has $api;
 has $db;
+has $service_name;
 
 method configure (%args) {
     $transport_uri //= (delete $args{transport} || die 'need a transport uri');
     $db_uri //= (delete $args{db} || die 'need a Database uri');
     $redis_cluster //= delete $args{redis_cluster};
+    $service_name //= (delete $args{service_name} || die 'need service_name');
     $self->next::method(%args);
 }
 
 method _add_to_loop($loop) {
     $log->tracef('Adding %s to loop', ref $self);
     $self->add_child(
-        $api = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster)
+        $api = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster,  service_name => $service_name)
     );
 
     $self->next::method($loop);
