@@ -14,4 +14,3 @@ RUN if [ -r cpanfile ]; then \
    cpanm -n --installdeps . \
    && rm -rf ~/.cpanm; \
  fi
-

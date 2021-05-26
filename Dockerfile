@@ -16,4 +16,4 @@ RUN echo "installing Framework" \
  && git clean -fd \
  && apt purge --autoremove -y
 
- ENTRYPOINT ["/bin/bash", "-c", "perl /opt/app/bin/vv-start.pl"]
+ ENTRYPOINT ["perl", "/opt/app/bin/vv-start.pl"]

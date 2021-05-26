@@ -1,4 +1,4 @@
-version: "3.2"
+version: "3.7"
 
 services:
   # The registry for all local images
@@ -195,6 +195,8 @@ services:
   caffeine-manager_api:
     build: services/caffeine-manager/api
     restart: unless-stopped
+    init: true
+    tty: true
     environment:
       LIBRARY_PATH: "/app/lib"
       LOG_LEVEL: "info"

@@ -124,6 +124,8 @@ services:
 [%  ELSIF service.image -%]
     image: [% service.image %]
 [%  END -%]
+    init: true
+    tty: true
     restart: unless-stopped
     environment:
 [% FOREACH env IN service.environment -%]
