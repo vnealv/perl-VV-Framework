@@ -39,9 +39,17 @@ Package name of service to be run.
 
 Address to the underlying Transport layer URI
 
+=item B<-c> I<1>, B<--redis-cluster>=I<0>
+
+Flag whether we are using Redis cluster or not.
+
 =item B<-l> I</opt/app/lib/>, B<--library>=I</opt/app/lib>
 
 Path to location of service library files.
+
+=item B<-d> I<postgresql>, B<--database>=I<postgresql>
+
+Postgres Database URI.
 
 =back
 
@@ -52,10 +60,17 @@ use Getopt::Long;
 use Syntax::Keyword::Try;
 use YAML::XS;
 use Log::Any qw($log);
+use Module::Runtime qw(require_module);
+
+use IO::Async::Loop;
+use VV::Framework;
 
 GetOptions(
-    'c|config=s'  => \my $config_file,
-    's|service=s' => \(my $service_name = $ENV{SERVICE_NAME}), 
+    's|service=s' => \(my $service = $ENV{SERVICE_NAME}), 
+    't|transport=s' => \(my $transport_uri = $ENV{TRANSPORT}),
+    'c|redis-cluster=s' => \(my $redis_cluster = $ENV{CLUSTER}),
+    'l|library=s' => \(my $library_path = $ENV{LIBRARY}),
+    'd|database=s' => \(my $db_uri = $ENV{DATABASE}),
     'h|help'     => \my $help,
 );
 
@@ -69,12 +84,30 @@ pod2usage(
     }
 ) if $help;
 
+$db_uri = 'dummy';
 
+my $loop = IO::Async::Loop->new;
 
-while (1) {
-    $log->infof( '%s', "HI" );
-    sleep 1;
+# Load passed service.
+
+push @INC, split /,:/, $library_path if $library_path;
+
+if($service =~ /^[a-z0-9_:]+[a-z0-9_]$/i) {
+    try {
+        require_module($service);
+        die 'loaded ' . $service . ' but it cannot ->new?' unless $service->can('new');
+    } catch ($e) {
+        $log->warnf('Failed to load module for service %s - %s', $service, $e);
+    }
+} else {
+    $log->warnf('unsupported Service name: %s | it should follow package format',  $service);
+    die;
 }
+
+my $vv = VV::Framework->new(transport => 'redis://redis6:6379', db => $db_uri, service_name => $service);
+$loop->add($vv);
+
+$vv->run->get;
 
 
 

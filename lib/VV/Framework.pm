@@ -13,7 +13,9 @@ use Object::Pad;
 class VV::Framework extends IO::Async::Notifier;
 
 use Log::Any qw($log);
+use Syntax::Keyword::Try;
 use Future::AsyncAwait;
+use curry;
 
 use VV::Framework::Transport::Redis;
 use VV::Framework::Transport::Postgres;
@@ -24,12 +26,16 @@ has $db_uri;
 has $api;
 has $db;
 has $service_name;
+has $service;
+
+method service () { $service; }
+method api () { $api; }
 
 method configure (%args) {
     $transport_uri //= (delete $args{transport} || die 'need a transport uri');
     $db_uri //= (delete $args{db} || die 'need a Database uri');
     $redis_cluster //= delete $args{redis_cluster};
-    $service_name //= (delete $args{service_name} || die 'need service_name');
+    $service_name //= (delete $args{service_name} || die 'need a service ');
     $self->next::method(%args);
 }
 
@@ -39,16 +45,41 @@ method _add_to_loop($loop) {
         $api = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster,  service_name => $service_name)
     );
 
+    $self->add_child($service = $service_name->new() );
+
     $self->next::method($loop);
 }
 
 async method run () {
 
     await $api->start;
+    await $service->start;
+    await $self->link_requests;
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);
     }
 
 }
+
+async method link_requests () {
+    my $request_source = $api->subscription_sink->source;
+    $request_source->map($self->$curry::weak(async method ($message) {
+        try {
+            $log->debugf('Received request message %s', $message->as_hash);
+            my $method = $message->args->{method};
+            if ( defined $method and $service->can($method) ) {
+                my $response = await $service->$method($message);
+                await $api->reply_success($service_name, $message, $response);
+            } else {
+                $log->warnf('Error RPC method not found | message: %s', $message);
+                await $api->reply_error($service_name, $message, {text => 'NotFound', code => 2});
+            }
+        } catch ($e) {
+            $log->warnf('Error linking request: %s | message: %s', $e, $message);
+            await $api->reply_error($service_name, $message, {text => $e, code => 2});
+        }
+    }))->resolve->completed;
+}
+
 1;

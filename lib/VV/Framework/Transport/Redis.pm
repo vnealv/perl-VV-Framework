@@ -110,8 +110,6 @@ async method requests_subscription () {
                 my $message = VV::Framework::Message::Redis::from_hash($item->{data}->@*);
                 $log->debugf('Received RPC request as %s', $message);
                 $subscription_sink->emit($message);
-
-                await $self->reply_success($service_name, $message, {ttt => 'yyy'});
             } catch ($error) {
                 $log->tracef("error while parsing the incoming messages: %s", $error->message);
                 await $self->drop($service_name, $item->{id});
@@ -256,4 +254,6 @@ async method drop ($stream, $id) {
 method next_id {
     return $current_id++;
 }
+
+method subscription_sink () { $subscription_sink; }
 1;
