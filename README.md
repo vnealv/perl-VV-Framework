@@ -53,7 +53,7 @@ For better understanding let me walk you through directory structure:
 To have it up and running, all what you need to do is:
 
 ```
-git clone git@github.com:vnealv/perl-VV-Framework.git
+git clone --recursive git@github.com:vnealv/perl-VV-Framework.git
 cd perl-VV-Framework .
 
 docker build -t perl-vv-framework .
