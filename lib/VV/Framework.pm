@@ -53,8 +53,8 @@ method _add_to_loop($loop) {
 async method run () {
 
     await $api->start;
-    await $service->start;
     await $self->link_requests;
+    await $service->start($api);
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);
