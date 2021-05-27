@@ -1,0 +1,7 @@
+libreadline-dev
+make
+gcc
+git
+openssh-client
+wget
+libz-dev

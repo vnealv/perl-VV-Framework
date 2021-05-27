@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.2"
 
 services:
   # The registry for all local images
@@ -194,9 +194,9 @@ services:
 
   caffeine-manager_api:
     build: services/caffeine-manager/api
-    restart: unless-stopped
     init: true
     tty: true
+    restart: unless-stopped
     environment:
       LIBRARY_PATH: "/app/lib"
       LOG_LEVEL: "info"
@@ -215,6 +215,106 @@ services:
       - redis-node-5
     volumes:
       - ./services/caffeine-manager/api:/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+      - ./:/opt/app
+  caffeine-manager_coffee:
+    build: services/caffeine-manager/coffee
+    init: true
+    tty: true
+    restart: unless-stopped
+    environment:
+      LIBRARY_PATH: "/app/lib"
+      LOG_LEVEL: "info"
+      TRANSPORT: "redis://redis-node-0:6379"
+      TRANSPORT_CLUSTER: "1"
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+    links:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/caffeine-manager/coffee:/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+      - ./:/opt/app
+  caffeine-manager_machine:
+    build: services/caffeine-manager/machine
+    init: true
+    tty: true
+    restart: unless-stopped
+    environment:
+      LIBRARY_PATH: "/app/lib"
+      LOG_LEVEL: "info"
+      TRANSPORT: "redis://redis-node-0:6379"
+      TRANSPORT_CLUSTER: "1"
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+    links:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/caffeine-manager/machine:/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+      - ./:/opt/app
+  caffeine-manager_stats:
+    build: services/caffeine-manager/stats
+    init: true
+    tty: true
+    restart: unless-stopped
+    environment:
+      LIBRARY_PATH: "/app/lib"
+      LOG_LEVEL: "info"
+      TRANSPORT: "redis://redis-node-0:6379"
+      TRANSPORT_CLUSTER: "1"
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+    links:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/caffeine-manager/stats:/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+      - ./:/opt/app
+  caffeine-manager_user:
+    build: services/caffeine-manager/user
+    init: true
+    tty: true
+    restart: unless-stopped
+    environment:
+      LIBRARY_PATH: "/app/lib"
+      LOG_LEVEL: "info"
+      TRANSPORT: "redis://redis-node-0:6379"
+      TRANSPORT_CLUSTER: "1"
+    networks:
+      - "default"
+      - "backend"
+      - "redis"
+    links:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/caffeine-manager/user:/app/
       - ./pg_service.conf:/root/.pg_service.conf:ro
       - ./:/opt/app
 
