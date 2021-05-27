@@ -2,7 +2,7 @@ package Service::Machine;
 
 use Object::Pad;
 
-class Service::API extends IO::Async::Notifier;
+class Service::Machine extends IO::Async::Notifier;
 
 use Future::AsyncAwait;
 

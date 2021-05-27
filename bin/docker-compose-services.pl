@@ -18,10 +18,10 @@ use Log::Any qw($log);
 use Log::Any::Adapter qw(Stderr), log_level => 'info';
 
 my %default_env = (
-    TRANSPORT_CLUSTER  => "1",
+    CLUSTER            => "1",
     TRANSPORT          => "redis://redis-node-0:6379",
     LOG_LEVEL          => "info",
-    LIBRARY_PATH       => "/app/lib",
+    LIBRARY            => "/app/lib",
 );
 
 my $service_dir = path('services');
@@ -46,6 +46,10 @@ for my $category (@categories) {
             my %env_hash = map { split /=/, $_, 2 } @env;
             @{$args{environment}}{keys %env_hash} = values %env_hash;
         }
+        my @service_dir = $srv->child('lib/Service/')->children;
+        # At the moment only one Service should be present.
+        my ($service_name) = $service_dir[0] =~ /.*\/(.*).pm/m;
+        $args{environment}{SERVICE_NAME} = "Service::$service_name";
 
         $args{volumes} = ["./$path:/app/", './pg_service.conf:/root/.pg_service.conf:ro', "./:/opt/app"];
         if($config_path->exists) {

@@ -198,10 +198,11 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      LIBRARY_PATH: "/app/lib"
+      CLUSTER: "1"
+      LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::API"
       TRANSPORT: "redis://redis-node-0:6379"
-      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"
@@ -223,10 +224,11 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      LIBRARY_PATH: "/app/lib"
+      CLUSTER: "1"
+      LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::Coffee"
       TRANSPORT: "redis://redis-node-0:6379"
-      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"
@@ -248,10 +250,11 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      LIBRARY_PATH: "/app/lib"
+      CLUSTER: "1"
+      LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::Machine"
       TRANSPORT: "redis://redis-node-0:6379"
-      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"
@@ -273,10 +276,11 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      LIBRARY_PATH: "/app/lib"
+      CLUSTER: "1"
+      LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::Stats"
       TRANSPORT: "redis://redis-node-0:6379"
-      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"
@@ -298,10 +302,11 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      LIBRARY_PATH: "/app/lib"
+      CLUSTER: "1"
+      LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::User"
       TRANSPORT: "redis://redis-node-0:6379"
-      TRANSPORT_CLUSTER: "1"
     networks:
       - "default"
       - "backend"

@@ -8,6 +8,7 @@ use Log::Any qw($log);
 use Syntax::Keyword::Try;
 use Future::AsyncAwait;
 use Net::Async::Redis;
+use Net::Async::Redis::Cluster;
 use Ryu::Async;
 use Sys::Hostname qw(hostname);
 use VV::Framework::Message::Redis;

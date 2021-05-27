@@ -104,7 +104,7 @@ if($service =~ /^[a-z0-9_:]+[a-z0-9_]$/i) {
     die;
 }
 
-my $vv = VV::Framework->new(transport => 'redis://redis6:6379', db => $db_uri, service_name => $service);
+my $vv = VV::Framework->new(transport => $transport_uri, db => $db_uri, service_name => $service, redis_cluster => $redis_cluster);
 $loop->add($vv);
 
 $vv->run->get;
