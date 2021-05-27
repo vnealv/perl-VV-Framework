@@ -70,50 +70,6 @@ services:
 [% END -%]
   # ... end of Redis node list here
 
-  # The proxy is used for external connections to our
-  # Redis cluster. It bootstraps from the first node.
-  redis-proxy:
-    build: redis-cluster-proxy
-    ports:
-      - "6372:7777"
-    networks:
-      - default
-      - redis
-    volumes:
-      - ./redis-proxy.conf:/etc/redis-proxy.conf:ro
-    depends_on:
-[% FOREACH redis IN REDIS_INDICES -%]
-      - redis-node-[% redis %]
-[% END -%]
-    command:
-      - "-c"
-      - "/etc/redis-proxy.conf"
-      - "redis-node-0:6379"
-
-  # Internal database shards
-[% FOREACH idx IN PG_INDICES -%]
-  pg-node-[% idx %]:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-[% idx %]-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
-      - REPMGR_PASSWORD=repmgrpassword
-      - REPMGR_PRIMARY_HOST=pg-node-0
-      - REPMGR_PRIMARY_PORT=5432
-      - REPMGR_PARTNER_NODES=[% FOREACH partner IN PG_INDICES %]pg-node-[% partner %]:5432[% UNLESS loop.last %],[% END %][% END %]
-      - REPMGR_NODE_NAME=pg-node-[% idx %]
-      - REPMGR_NODE_NETWORK_NAME=pg-node-[% idx %]
-      - REPMGR_PORT_NUMBER=5432
-[% END -%]
-  # End of database shard list
 
   # Start list of services
 
@@ -138,9 +94,10 @@ services:
 [%   END -%]
 [%  END -%]
     networks:
-      - "default"
-      - "backend"
-      - "redis"
+      - default
+      - backend
+      - redis
+      - database
 [%  IF service.networks -%]
 [%   FOREACH network IN service.networks -%]
       - "[% network %]"
@@ -154,17 +111,32 @@ services:
 [% FOREACH volume IN service.volumes -%]
       - [% volume %]
 [% END -%]
+
+  # Dedicated Database for each service.
+
+  pg-[% service.instance %]:
+    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+    ports:
+      - 5432
+    volumes:
+      - pg-[% service.instance %]-data:/bitnami/postgresql
+    networks:
+      - database
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=customdatabase
 [% END -%]
 
   # End list of services
 
 volumes:
-  # Remember to keep this volume list up to date!
 [% FOREACH redis IN REDIS_INDICES -%]
   redis-cluster_data-[% redis %]:
 [% END -%]
-[% FOREACH idx IN REDIS_INDICES -%]
-  pg-[% idx %]-data:
+[% FOREACH service IN service_list -%]
+  pg-[% service.instance %]-data:
 [% END -%]
 
 networks:
