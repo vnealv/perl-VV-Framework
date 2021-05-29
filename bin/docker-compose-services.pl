@@ -37,7 +37,16 @@ for my $category (@categories) {
         } else {
             $args{image} = 'perl-vv-framework';
         }
+        # pg node name
+        $args{pg} = join('-', $category->basename, $srv->basename);
         
+        my @service_dir = $srv->child('lib/Service/')->children;
+        # At the moment only one Service should be present.
+        my ($service_name) = $service_dir[0] =~ /.*\/(.*).pm/m;
+        $args{environment}{SERVICE_NAME} = "Service::$service_name";
+        $args{environment}{APP} = $category->basename;
+        $args{environment}{DATABASE} = $args{pg};
+
         # Include additional environment variables.
         @{$args{environment}}{keys %default_env} = values %default_env;
         my $env = $srv->child('.env');
@@ -46,13 +55,7 @@ for my $category (@categories) {
             my %env_hash = map { split /=/, $_, 2 } @env;
             @{$args{environment}}{keys %env_hash} = values %env_hash;
         }
-        my @service_dir = $srv->child('lib/Service/')->children;
-        # At the moment only one Service should be present.
-        my ($service_name) = $service_dir[0] =~ /.*\/(.*).pm/m;
-        $args{environment}{SERVICE_NAME} = "Service::$service_name";
 
-        # pg node name
-        $args{pg} = join('-', $category->basename, $srv->basename);
 
         $args{volumes} = ["./$path:/app/", './pg_service.conf:/root/.pg_service.conf:ro'];
         if($config_path->exists) {

@@ -134,7 +134,9 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      APP: "caffeine-manager"
       CLUSTER: "1"
+      DATABASE: "caffeine-manager-api"
       LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::API"
@@ -176,7 +178,9 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      APP: "caffeine-manager"
       CLUSTER: "1"
+      DATABASE: "caffeine-manager-coffee"
       LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::Coffee"
@@ -218,7 +222,9 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      APP: "caffeine-manager"
       CLUSTER: "1"
+      DATABASE: "caffeine-manager-machine"
       LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::Machine"
@@ -260,7 +266,9 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      APP: "caffeine-manager"
       CLUSTER: "1"
+      DATABASE: "caffeine-manager-stats"
       LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::Stats"
@@ -302,7 +310,9 @@ services:
     tty: true
     restart: unless-stopped
     environment:
+      APP: "caffeine-manager"
       CLUSTER: "1"
+      DATABASE: "caffeine-manager-user"
       LIBRARY: "/app/lib"
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::User"

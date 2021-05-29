@@ -151,6 +151,7 @@ async method responses_subscription () {
 
 async method create_stream ($stream, $start_from = '$') {
     try {
+        $log->warnf('CREATING GROUP: %s', $stream);
         await $redis->xgroup('CREATE', $stream, $group_name, $start_from, 'MKSTREAM');
     } catch ($e) {
         if($e =~ /BUSYGROUP/){
@@ -191,9 +192,11 @@ async method read_from_stream ($redis_instance, $stream) {
     return ();
 }
 
-async method call_rpc($stream, %args) {
-    my $pending = $self->loop->new_future(label => "rpc:request:${stream}");
+async method call_rpc($service, %args) {
 
+    # Limit to call services within same app only
+    my $stream = join('::', (split('::', $service_name))[0], $service);
+    my $pending = $self->loop->new_future(label => "rpc:request:${stream}");
     my $message_id = $self->next_id;
     my $timeout = delete $args{timeout} || 60;
     my $method = $args{method};
@@ -243,7 +246,7 @@ async method reply_success ($service, $message, $response) {
 }
 
 async method reply_error ($service, $message, $error) {
-    $message->response = { error => { error_code => $error->{code}, text => $error->{text} } };
+    $message->response = { error => { error_code => $error->{code}, error_text => $error->{text} } };
     await $self->reply($service, $message);
 }
 

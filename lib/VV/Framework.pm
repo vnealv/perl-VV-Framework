@@ -27,6 +27,7 @@ has $api;
 has $db;
 has $service_name;
 has $service;
+has $app;
 
 method service () { $service; }
 method api () { $api; }
@@ -35,7 +36,9 @@ method configure (%args) {
     $transport_uri //= (delete $args{transport} || die 'need a transport uri');
     $db_uri //= (delete $args{db} || die 'need a Database uri');
     $redis_cluster //= delete $args{redis_cluster};
-    $service_name //= (delete $args{service_name} || die 'need a service ');
+    $service //= (delete $args{service} || die 'need a service ');
+    $app //= (delete $args{app} || die 'need ann app');
+    $service_name = lc(join '_', $app, $service);
     $self->next::method(%args);
 }
 
@@ -45,7 +48,7 @@ method _add_to_loop($loop) {
         $api = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster,  service_name => $service_name)
     );
 
-    $self->add_child($service = $service_name->new() );
+    $self->add_child($service = $service->new() );
 
     $self->next::method($loop);
 }
@@ -73,11 +76,11 @@ async method link_requests () {
                 await $api->reply_success($service_name, $message, $response);
             } else {
                 $log->warnf('Error RPC method not found | message: %s', $message);
-                await $api->reply_error($service_name, $message, {text => 'NotFound', code => 2});
+                await $api->reply_error($service_name, $message, {text => 'NotFound', code => 400});
             }
         } catch ($e) {
             $log->warnf('Error linking request: %s | message: %s', $e, $message);
-            await $api->reply_error($service_name, $message, {text => $e, code => 2});
+            await $api->reply_error($service_name, $message, {text => $e, code => 500});
         }
     }))->resolve->completed;
 }

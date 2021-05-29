@@ -35,6 +35,10 @@ After that it invokes the intended package putting it in running state.
 
 Package name of service to be run.
 
+=item B<-a> I<Caffeiene_Manager>, B<--app>=I<appName>
+
+Application name that this service belongs to.
+
 =item B<-t> I<redis://redis:6379>, B<--transport>=I<redis://redis:6379>
 
 Address to the underlying Transport layer URI
@@ -53,7 +57,7 @@ Postgres Database URI.
 
 =item B<-v> I<debug>, B<--log-level>=I<info>
 
-Postgres Database URI.
+Log level of application.
 
 =back
 
@@ -70,13 +74,14 @@ use IO::Async::Loop;
 use VV::Framework;
 
 GetOptions(
-    's|service=s' => \(my $service = $ENV{SERVICE_NAME}), 
-    't|transport=s' => \(my $transport_uri = $ENV{TRANSPORT}),
+    's|service=s'       => \(my $service       = $ENV{SERVICE_NAME}),
+    'a|app=s'           => \(my $app           = $ENV{APP}),
+    't|transport=s'     => \(my $transport_uri = $ENV{TRANSPORT}),
     'c|redis-cluster=s' => \(my $redis_cluster = $ENV{CLUSTER}),
-    'l|library=s' => \(my $library_path = $ENV{LIBRARY}),
-    'd|database=s' => \(my $db_uri = $ENV{DATABASE}),
-    'v|log-level=s' => \(my $log_level = $ENV{LOG_LEVEL}),
-    'h|help'     => \my $help,
+    'l|library=s'       => \(my $library_path  = $ENV{LIBRARY}),
+    'd|database=s'      => \(my $db_uri        = $ENV{DATABASE}),
+    'v|log-level=s'     => \(my $log_level     = $ENV{LOG_LEVEL}),
+    'h|help'            => \my $help,
 );
 
 require Log::Any::Adapter;
@@ -88,8 +93,6 @@ pod2usage(
         -sections => "NAME|SYNOPSIS|DESCRIPTION|OPTIONS",
     }
 ) if $help;
-
-$db_uri = 'dummy';
 
 my $loop = IO::Async::Loop->new;
 
@@ -109,7 +112,7 @@ if($service =~ /^[a-z0-9_:]+[a-z0-9_]$/i) {
     die;
 }
 
-my $vv = VV::Framework->new(transport => $transport_uri, db => $db_uri, service_name => $service, redis_cluster => $redis_cluster);
+my $vv = VV::Framework->new(transport => $transport_uri, db => $db_uri, service => $service, app => $app, redis_cluster => $redis_cluster);
 $loop->add($vv);
 
 $vv->run->get;

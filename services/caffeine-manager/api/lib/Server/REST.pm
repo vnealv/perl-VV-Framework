@@ -12,6 +12,7 @@ use HTTP::Response;
 use JSON::MaybeUTF8 qw(:v1);
 use Unicode::UTF8;
 use Scalar::Util qw(refaddr blessed);
+use curry;
 
 use Log::Any qw($log);
 
@@ -28,7 +29,7 @@ Provides an HTTP interface to Caffeine Manager.
 has $server;
 has $listen_port;
 has $active_requests;
-has $service;
+has $requests_sink;
 
 method configure (%args) {
 
@@ -39,81 +40,82 @@ method configure (%args) {
 }
 
 
-method _add_to_loop () {
+method _add_to_loop ($loop) {
     # server for incoming requests
     $self->add_child(
         $server = Net::Async::HTTP::Server->new(
-            on_request => sub {
-                my ($http, $req) = @_;
-                # without this we will have "lost its returning future" errors
+            on_request => $self->$curry::weak( method ($http, $req) {
+                # Keep request in memory until we respond to it.
                 my $k = refaddr($req);
-                $active_requests->{$k} = $self->handle_http_request($req)->on_ready(sub { delete $active_requests->{$k} });
-            }));
-
+                $active_requests->{$k} = $self->handle_http_request($req)->on_ready(
+                    $self->$curry::weak( method ($f) {
+                        delete $active_requests->{$k};
+                    })
+                );
+            }),
+        )
+    );
 }
 
 
 async method handle_http_request ($req) {
-
-    my ($req) = @_;
+    $log->debugf('HTTP receives %s %s:%s', $req->method, $req->path, $req->body);
     try {
-        $log->debugf('HTTP receives %s:%s', $req->path, $req->body);
+        # Capture only alphabetical names as path, and numerics as parameters.
+        my ($service, @path) = ($req->path =~ /\/([A-Za-z]+)/g);
 
-        # See Net::Async::HTTP::Server for methods available here
-        my ($method) = $req->path =~ qr{^/([A-Za-z]+)};
-        my $query    = {$req->query_form};
-        my $params   = decode_json_utf8($req->body || '{}');
-        $log->tracef('Had query %s and parameters %s for method %s', $query, $params, $method);
-        my $data = await handle_request(
-            method => $method,
-            %$query,
-            %$params
-        );
-        my $response = HTTP::Response->new(200);
-        $response->add_content(encode_json_utf8($data));
-        $response->content_type("application/javascript");
-        $response->content_length(length $response->content);
+        # add default method, if no method supplied.
+        push @path, 'request' unless @path;
+        # Construct method name from path
+        my $method = join('_', @path);
 
-        $req->respond($response);
-    } catch ($e) {
-        $log->errorf('Failed with MT5 request - %s', $e);
-        try {
-            my $response = HTTP::Response->new(500);
-            # If this is a properly-formatted MT5 error, we can return as JSON
-            if (ref $e) {
-                $e = encode_json_text($e);
-                $response->content_type("application/javascript");
-            } else {
-                # ... but if we don't know what it is, stick to a string
-                $response->content_type("text/plain");
-            }
-
-            $response->add_content(Unicode::UTF8::encode_utf8("$e"));
-            $response->content_length(length $response->content);
-
-            $req->respond($response);
-        } catch ($e2) {
-            $log->errorf('Failed when trying to send failure response for MT5 request - %s', $e2);
+        my %params = ($req->path =~ /\/([0-9]+)/g);
+        # If no params are passed on requirement structure
+        # Check if params passed as query params.
+        if (!%params) {
+             %params = $req->query_form;
         }
-    }
-}
+        my $body_params = decode_json_utf8($req->body || '{}');
 
-async method handle_request (%args) {
-    my $method = delete $args{method};
+        $log->tracef('Had body_params %s | params %s | for service %s, method: %s | path: %s', $body_params, \%params, $service, $method, \@path);
 
-    # Convert method from PascalCase to camel_case
-    $method =~ s{(?<=[a-z])([A-Z])}{'_' . lc($1)}ge;
-    $method = lc $method;
-
-    try {
-        return await $service->call( $method, %args);
+        $requests_sink->emit({request => $req, service => $service, method => $method, params => \%params, body => $body_params});
     } catch ($e) {
-        $log->warnf('Failed calling method %s, Error: %s', $method, $e);
+        $log->errorf('Failed with handling request - %s', $e);
+        $self->reply_fail($req, $e);
     }
 }
 
-async method start () {
+method reply_success ($req, $data) {
+    my $response = HTTP::Response->new(200);
+
+    $response->add_content(encode_json_utf8($data));
+    $response->content_type("application/json");
+    $response->content_length(length $response->content);
+
+    $req->respond($response);
+}
+
+method reply_fail ($req, $error) {
+
+    my $content = {error_code => '400', error_text => ''};
+    if ( ref($error) eq 'HASH' ) {
+        $content->{error_code} = $error->{error_code} if exists $error->{error_code};
+        $content->{error_text} = $error->{error_text} if exists $error->{error_text};
+    } else {
+        $content->{error_text} = $error;
+    }
+    my $response = HTTP::Response->new($content->{error_code});
+    $response->add_content(encode_json_utf8($content));
+    $response->content_type("application/json");
+    $response->content_length(length $response->content);
+
+    $req->respond($response);
+}
+
+async method start ($sink) {
     
+    $requests_sink = $sink;
     my $listner = await $server->listen(
         addr => {
             family   => 'inet',
