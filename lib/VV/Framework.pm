@@ -19,15 +19,21 @@ use curry;
 
 use VV::Framework::Transport::Redis;
 use VV::Framework::Transport::Postgres;
+use VV::Framework::API;
+use VV::Framework::Manager;
+use VV::Framework::Storage;
 
 has $transport_uri;
 has $redis_cluster;
 has $db_uri;
 has $api;
+has $transport;
 has $db;
 has $service_name;
 has $service;
 has $app;
+has $manager;
+has $storage;
 
 method service () { $service; }
 method api () { $api; }
@@ -38,51 +44,39 @@ method configure (%args) {
     $redis_cluster //= delete $args{redis_cluster};
     $service //= (delete $args{service} || die 'need a service ');
     $app //= (delete $args{app} || die 'need ann app');
-    $service_name = lc(join '_', $app, $service);
+    $service_name = lc(join '_', map { chomp; $_ } ($app, $service));
     $self->next::method(%args);
 }
 
 method _add_to_loop($loop) {
-    $log->tracef('Adding %s to loop', ref $self);
     $self->add_child(
-        $api = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster,  service_name => $service_name)
+        $transport = VV::Framework::Transport::Redis->new(redis_uri => $transport_uri, cluster => $redis_cluster,  service_name => $service_name)
+    );
+
+    $self->add_child(
+        $api = VV::Framework::API->new(transport => $transport, service_name => $service_name)
     );
 
     $self->add_child($service = $service->new() );
+
+    $manager = VV::Framework::Manager->new(transport => $transport, service => $service, service_name => $service_name);
+    $storage = VV::Framework::Storage->new(transport => $transport, service_name => $service_name);
 
     $self->next::method($loop);
 }
 
 async method run () {
 
+    await $transport->start;
     await $api->start;
-    await $self->link_requests;
+    await $manager->link_requests;
+    await $storage->start();
     await $service->start($api);
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);
     }
 
-}
-
-async method link_requests () {
-    my $request_source = $api->subscription_sink->source;
-    $request_source->map($self->$curry::weak(async method ($message) {
-        try {
-            $log->debugf('Received request message %s', $message->as_hash);
-            my $method = $message->args->{method};
-            if ( defined $method and $service->can($method) ) {
-                my $response = await $service->$method($message);
-                await $api->reply_success($service_name, $message, $response);
-            } else {
-                $log->warnf('Error RPC method not found | message: %s', $message);
-                await $api->reply_error($service_name, $message, {text => 'NotFound', code => 400});
-            }
-        } catch ($e) {
-            $log->warnf('Error linking request: %s | message: %s', $e, $message);
-            await $api->reply_error($service_name, $message, {text => $e, code => 500});
-        }
-    }))->resolve->completed;
 }
 
 1;

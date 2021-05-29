@@ -5,13 +5,13 @@ use Object::Pad;
 class Service::API extends IO::Async::Notifier;
 
 use Log::Any qw($log);
+use Syntax::Keyword::Try;
 use Future::AsyncAwait;
-use Net::Async::HTTP::Server;
-use HTTP::Response;
+
 use Server::REST;
 use Ryu::Async;
 use curry;
-use Syntax::Keyword::Try;
+
 
 has $vv;
 has $ryu;
@@ -53,8 +53,9 @@ async method start($api) {
 }
 
 async method request_service ($incoming_req) {
-    my ($service, $method, $param, $args) = @$incoming_req{qw(service method params body)};
-    return await $vv->call_rpc($service, timeout => 10, method => $method, param => $param, args => $args);
+    # In fact hash can be passed as it is, however it is kept for clarity.
+    my ($service, $method, $param, $args, $type) = @$incoming_req{qw(service method params body type)};
+    return await $vv->call_rpc($service, timeout => 10, method => $method, param => $param, args => $args, type => $type);
 }
 
 async method health ($message) {

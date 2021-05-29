@@ -79,7 +79,7 @@ async method handle_http_request ($req) {
 
         $log->tracef('Had body_params %s | params %s | for service %s, method: %s | path: %s', $body_params, \%params, $service, $method, \@path);
 
-        $requests_sink->emit({request => $req, service => $service, method => $method, params => \%params, body => $body_params});
+        $requests_sink->emit({request => $req, service => $service, method => $method, params => \%params, body => $body_params, type => $req->method});
     } catch ($e) {
         $log->errorf('Failed with handling request - %s', $e);
         $self->reply_fail($req, $e);
