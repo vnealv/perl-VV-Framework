@@ -51,6 +51,10 @@ Path to location of service library files.
 
 Postgres Database URI.
 
+=item B<-v> I<debug>, B<--log-level>=I<info>
+
+Postgres Database URI.
+
 =back
 
 =cut
@@ -71,11 +75,12 @@ GetOptions(
     'c|redis-cluster=s' => \(my $redis_cluster = $ENV{CLUSTER}),
     'l|library=s' => \(my $library_path = $ENV{LIBRARY}),
     'd|database=s' => \(my $db_uri = $ENV{DATABASE}),
+    'v|log-level=s' => \(my $log_level = $ENV{LOG_LEVEL}),
     'h|help'     => \my $help,
 );
 
 require Log::Any::Adapter;
-Log::Any::Adapter->set( qw(Stdout), log_level => "info" );
+Log::Any::Adapter->set( qw(Stdout), log_level => $log_level );
 
 pod2usage(
     {

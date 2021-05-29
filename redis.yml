@@ -4,10 +4,5 @@ services:
   redis-node:
     image: docker.io/bitnami/redis-cluster:6.2-debian-10
     restart: unless-stopped
-    networks:
-      - redis
     environment:
       - "ALLOW_EMPTY_PASSWORD=yes"
-
-networks:
-  redis:

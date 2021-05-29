@@ -10,7 +10,7 @@ use Net::Async::Redis::Cluster;
 
 use Socket qw(unpack_sockaddr_in inet_ntoa);
 use Log::Any qw($log);
-use Log::Any::Adapter qw(Stdout), log_level => 'info';
+use Log::Any::Adapter qw(Stdout), log_level => 'debug';
 use IO::Async::Resolver;
 
 my $loop = IO::Async::Loop->new;
@@ -60,22 +60,22 @@ for my $node (@ip) {
 $log->infof('All nodes have now joined.');
 
 
-for my $node (@ip) {
-    try {
-        $loop->add(
-            my $cluster = Net::Async::Redis::Cluster->new() 
-        );
+try {
+    $loop->add(
+        my $cluster = Net::Async::Redis::Cluster->new( client_side_cache_size =>  0 ) 
+    );
 
+	$log->info('Testing Cluster, connecting to main node ...');
         await $cluster->bootstrap(
-            host => $node,
+            host => 'redis-node-0',
+	        port => 6379
         );
-        
-        my $set = await $cluster->set('some_key', "From node: $node");
-        $log->info('Set response: %s', $set);
-        my $get = await $cluster->get('some_key');
-        $log->infof('Get Key: %s', $get);
-    } catch ($e) {
-        $log->errorf('Failed to set/get key from cluster. Node: %s | Error: %s', $node, $e);
-    }
+	my $set = await $cluster->set('some_key', "From node:redis-node-0");
+	$log->infof('Set response: %s', $set);
+	my $get = await $cluster->get('some_key');
+	$log->infof('Get Key: %s', $get);
+} catch ($e) {
+    $log->errorf('Failed to set/get key from cluster. Node: redis-node-0 | Error: %s', $e);
 }
-$log->infof('All nodes have been tested.');
+
+$log->infof('Cluster has been tested.');

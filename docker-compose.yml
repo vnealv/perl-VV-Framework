@@ -41,6 +41,7 @@ services:
       - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
       - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
       - "REDIS_DNS_RETRIES=30"
+      - "REDIS_CLUSTER_CREATOR=1"
 
   redis-node-1:
     extends:
@@ -143,7 +144,7 @@ services:
       - backend
       - redis
       - database
-    links:
+    depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
@@ -156,19 +157,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-caffeine-manager_api:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-caffeine-manager_api-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-caffeine-manager-api:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-caffeine-manager-api-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
   caffeine-manager_coffee:
     build: services/caffeine-manager/coffee
     init: true
@@ -185,7 +186,7 @@ services:
       - backend
       - redis
       - database
-    links:
+    depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
@@ -198,19 +199,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-caffeine-manager_coffee:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-caffeine-manager_coffee-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-caffeine-manager-coffee:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-caffeine-manager-coffee-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
   caffeine-manager_machine:
     build: services/caffeine-manager/machine
     init: true
@@ -227,7 +228,7 @@ services:
       - backend
       - redis
       - database
-    links:
+    depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
@@ -240,19 +241,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-caffeine-manager_machine:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-caffeine-manager_machine-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-caffeine-manager-machine:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-caffeine-manager-machine-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
   caffeine-manager_stats:
     build: services/caffeine-manager/stats
     init: true
@@ -269,7 +270,7 @@ services:
       - backend
       - redis
       - database
-    links:
+    depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
@@ -282,19 +283,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-caffeine-manager_stats:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-caffeine-manager_stats-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-caffeine-manager-stats:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-caffeine-manager-stats-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
   caffeine-manager_user:
     build: services/caffeine-manager/user
     init: true
@@ -311,7 +312,7 @@ services:
       - backend
       - redis
       - database
-    links:
+    depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
@@ -324,19 +325,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-caffeine-manager_user:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-caffeine-manager_user-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-caffeine-manager-user:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-caffeine-manager-user-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
 
   # End list of services
 
@@ -347,11 +348,11 @@ volumes:
   redis-cluster_data-3:
   redis-cluster_data-4:
   redis-cluster_data-5:
-  pg-caffeine-manager_api-data:
-  pg-caffeine-manager_coffee-data:
-  pg-caffeine-manager_machine-data:
-  pg-caffeine-manager_stats-data:
-  pg-caffeine-manager_user-data:
+  pg-caffeine-manager-api-data:
+  pg-caffeine-manager-coffee-data:
+  pg-caffeine-manager-machine-data:
+  pg-caffeine-manager-stats-data:
+  pg-caffeine-manager-user-data:
 
 networks:
   default:

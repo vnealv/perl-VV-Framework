@@ -2,14 +2,14 @@
 # How many shards we have for each service. Note that Redis expects to be
 # an even number for main/replica pairing.
 DEFAULT REDIS_COUNT = 6,
-        PG_COUNT = 2;
+        PG_COUNT = 1;
 
 # This is where it gets interesting: each of our services
 # is defined as a name, a source, and some options. The same
-DEFAULT service_list = [
+#DEFAULT service_list = [
  # Main API endpoint exposes websockets via nginx
- { name => 'api', ports => [ 80 ], networks => [ 'database' ] }
-];
+# { name => 'api', ports => [ 80 ], networks => [ 'database' ] }
+#];
 
 REDIS_INDICES = [ 0 .. REDIS_COUNT ];
 CALL REDIS_INDICES.pop();
@@ -66,6 +66,9 @@ services:
       - "REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10"
       - "REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30"
       - "REDIS_DNS_RETRIES=30"
+[%  IF redis == '0' -%]
+      - "REDIS_CLUSTER_CREATOR=1"
+[%  END -%]
 
 [% END -%]
   # ... end of Redis node list here
@@ -103,7 +106,7 @@ services:
       - "[% network %]"
 [%   END -%]
 [%  END -%]
-    links:
+    depends_on:
 [%  FOREACH redis IN REDIS_INDICES -%]
       - redis-node-[% redis %]
 [%  END -%]
@@ -114,19 +117,19 @@ services:
 
   # Dedicated Database for each service.
 
-  pg-[% service.instance %]:
-    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
-    ports:
-      - 5432
-    volumes:
-      - pg-[% service.instance %]-data:/bitnami/postgresql
-    networks:
-      - database
-    environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
-      - POSTGRESQL_USERNAME=customuser
-      - POSTGRESQL_PASSWORD=custompassword
-      - POSTGRESQL_DATABASE=customdatabase
+#  pg-[% service.pg %]:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-[% service.pg %]-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
 [% END -%]
 
   # End list of services
@@ -136,7 +139,7 @@ volumes:
   redis-cluster_data-[% redis %]:
 [% END -%]
 [% FOREACH service IN service_list -%]
-  pg-[% service.instance %]-data:
+  pg-[% service.pg %]-data:
 [% END -%]
 
 networks:

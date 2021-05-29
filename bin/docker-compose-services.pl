@@ -51,6 +51,9 @@ for my $category (@categories) {
         my ($service_name) = $service_dir[0] =~ /.*\/(.*).pm/m;
         $args{environment}{SERVICE_NAME} = "Service::$service_name";
 
+        # pg node name
+        $args{pg} = join('-', $category->basename, $srv->basename);
+
         $args{volumes} = ["./$path:/app/", './pg_service.conf:/root/.pg_service.conf:ro'];
         if($config_path->exists) {
             my $cfg = LoadFile($config_path);
