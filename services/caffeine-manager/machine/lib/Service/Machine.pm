@@ -26,7 +26,7 @@ BUILD (%args) {
     };
 }
 
-async method start ($api, $vv_storage) {
+async method start ($api, $vv_storage, $vv_mngr) {
     $vv = $api;
     $storage = $vv_storage;
 }

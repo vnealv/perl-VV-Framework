@@ -74,7 +74,7 @@ async method run () {
     await $api->start;
     await $manager->link_requests;
     await $storage->start();
-    await $service->start($api, $storage);
+    await $service->start($api, $storage, $manager);
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);
