@@ -8,6 +8,8 @@ use Future::AsyncAwait;
 use Log::Any qw($log);
 use Syntax::Keyword::Try;
 use Future::Utils qw( fmap_concat fmap_void );
+use VV::Framework::Util qw(subscription_name);
+use JSON::MaybeUTF8 qw(:v1);
 
 use curry;
 
@@ -127,19 +129,26 @@ async method record_add ($key, %record) {
             foreach => [keys %record], concurrent => 8
         );
     }
+
+    # Tell the world what you did!
+    try {
+        await $redis->publish(subscription_name($service_name, $key), encode_json_utf8(\%record));
+    } catch ($e) {
+        $log->warnf('Could not publish to event_subscription %s | error: %s', $key, $e);
+    }
     return $id;
 
 }
 
 async method record_get ($key, $id, $service = '') {
-    my $fields = await $redis->lrange($r_prefix->($key.'-F'), 0, -1);
+    my $fields = await $redis->lrange($r_prefix->($key.'-F', $service), 0, -1);
 
-    $log->warnf('Fields to get: %s', $fields);
+    $log->debugf('Fields to get: %s | %s | %s', $fields, $r_prefix->($key.'-F', $service), $service);
     $id = $self->latest_id($key, $service) if $id == 0;
     my %record = await &fmap_concat(
         $self->$curry::weak(async method ($field) {
-            my $value = await $self->redis->hget($r_prefix->($field), $id);
-            $log->warnf('HGET %s:  %s | %s', $r_prefix->($field), $id, $value);
+            my $value = await $self->redis->hget($r_prefix->($field, $service), $id);
+            $log->debugf('HGET %s:  %s | %s', $r_prefix->($field, $service), $id, $value);
             return ( $field => $value );
         }),
         foreach => $fields, concurrent => 8
@@ -174,4 +183,5 @@ async method list_push ($key, $v) {
 async method list_get ($key, $service = '', $r1 = 0, $r2 = -1) {
     await $redis->lrange($l_prefix->($key, $service), $r1, $r2);
 }
+
 1;

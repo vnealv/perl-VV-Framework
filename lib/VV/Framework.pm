@@ -22,6 +22,7 @@ use VV::Framework::Transport::Postgres;
 use VV::Framework::API;
 use VV::Framework::Manager;
 use VV::Framework::Storage;
+use VV::Framework::Hook;
 
 has $transport_uri;
 has $redis_cluster;
@@ -34,6 +35,7 @@ has $service;
 has $app;
 has $manager;
 has $storage;
+has $hook;
 
 method service () { $service; }
 method api () { $api; }
@@ -61,6 +63,10 @@ method _add_to_loop($loop) {
         $storage = VV::Framework::Storage->new(transport => $transport, service_name => $service_name)
     );
 
+    $self->add_child(
+        $hook = VV::Framework::Hook->new(transport => $transport, service_name => $service_name)
+    );
+
     $self->add_child($service = $service->new() );
 
     $manager = VV::Framework::Manager->new(transport => $transport, service => $service, service_name => $service_name);
@@ -74,7 +80,8 @@ async method run () {
     await $api->start;
     await $manager->link_requests;
     await $storage->start();
-    await $service->start($api, $storage, $manager);
+    await $hook->start();
+    await $service->start($api, $storage, $hook);
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);

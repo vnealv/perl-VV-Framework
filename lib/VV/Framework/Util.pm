@@ -6,7 +6,7 @@ use warnings;
 use Exporter 'import';
 use Sys::Hostname qw(hostname);
 
-our @EXPORT_OK = qw(whoami service_name);
+our @EXPORT_OK = qw(whoami subscription_name);
 
 # This will in fact act as a had constrain on VV Framework 
 # where only one service can run per container/system
@@ -14,6 +14,7 @@ sub whoami {
     return hostname();
 }
 
-sub service_name {
-
+sub subscription_name {
+    my ($domain, $service_name) = @_;
+    return join '_', join('::', (split('::', $domain))[0], $service_name), 'SUBSCR';
 }
