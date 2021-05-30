@@ -19,9 +19,11 @@ BUILD (%args) {
     $fields = {
         user => {
             mandatory => 1,
+            entity    => 1,
         },
         machine => {
             mandatory => 1,
+            entity    => 1,
         },
         timestamp => {
             isa => 'Time::Moment', # some type casting can be implemented
@@ -65,6 +67,21 @@ async method buy ($message) {
 
         # Need to add more validation
         # also its better if timestamp saved as epoch
+        $args{timestamp} = $args{timestamp}->epoch;
+        # Get entities details:
+        # should be converted to fmap instead of for
+        for my $entity (grep { exists $fields->{$_}{entity}} keys $fields->%*) {
+            my %data = await $storage->record_get($entity, $args{$entity}, $entity);
+            # Only if found
+            delete $data{id};
+            if ( grep { defined } values %data ) {
+                $args{$entity.'_'.$_} = $data{$_} for keys %data;
+                # since we have it all added
+                $args{$entity.'_id'} = delete $args{$entity};
+            } else {
+                return {error => {text => 'Invalid User or Machine does not exist', code => 400 } };
+            }
+        }
         my $id = await $storage->record_add('coffee', %args);
         return {id => $id};
     } else {
