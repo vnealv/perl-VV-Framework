@@ -27,7 +27,7 @@ method _add_to_loop($loop) {
 }
 
 has $s;
-async method start($api) {
+async method start($api, $vv_storage, $vv_hook) {
     $vv = $api;
 
     my $sink = $ryu->sink(label => "http_requests_sink");

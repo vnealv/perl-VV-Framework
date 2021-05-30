@@ -31,7 +31,7 @@ BUILD (%args) {
     };
 }
 
-async method start ($api, $vv_storage, $vv_mngr) {
+async method start ($api, $vv_storage, $vv_hook) {
     warn "Service started";
     $vv = $api;
     $storage = $vv_storage;

@@ -41,6 +41,7 @@ BUILD (%args) {
 }
 
 method storage () { $storage; }
+
 async method start ($api, $vv_storage, $vv_hook) {
     $vv = $api;
     $storage = $vv_storage;
