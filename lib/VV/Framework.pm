@@ -83,7 +83,7 @@ async method run () {
     await $hook->start();
     await $service->start($api, $storage, $hook);
     while (1) {
-        $log->warnf('sss running');
+        $log->debugf('Framework is running running');
         await $self->loop->delay_future(after => 1);
     }
 

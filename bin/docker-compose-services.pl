@@ -58,6 +58,7 @@ for my $category (@categories) {
 
 
         $args{volumes} = ["./$path:/app/", './pg_service.conf:/root/.pg_service.conf:ro'];
+        $args{ports} = ["80:80"] if $srv->basename eq 'api';
         if($config_path->exists) {
             my $cfg = LoadFile($config_path);
             push @services, {

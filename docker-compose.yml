@@ -135,6 +135,8 @@ services:
       LOG_LEVEL: "info"
       SERVICE_NAME: "Service::API"
       TRANSPORT: "redis://redis-node-0:6379"
+    ports:
+      - "80:80"
     networks:
       - default
       - backend
@@ -342,6 +344,50 @@ services:
 #      - POSTGRESQL_USERNAME=customuser
 #      - POSTGRESQL_PASSWORD=custompassword
 #      - POSTGRESQL_DATABASE=customdatabase
+  coffee-drinkers_heavydrinker:
+    build: services/coffee-drinkers/heavydrinker
+    init: true
+    tty: true
+    restart: unless-stopped
+    environment:
+      APP: "coffee-drinkers"
+      CLUSTER: "1"
+      DATABASE: "coffee-drinkers-heavydrinker"
+      LIBRARY: "/app/lib"
+      LOG_LEVEL: "info"
+      SERVICE_NAME: "Service::HeavyDrinker"
+      TRANSPORT: "redis://redis-node-0:6379"
+    networks:
+      - default
+      - backend
+      - redis
+      - database
+    depends_on:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+    volumes:
+      - ./services/coffee-drinkers/heavydrinker:/app/
+      - ./pg_service.conf:/root/.pg_service.conf:ro
+
+  # Dedicated Database for each service.
+
+#  pg-coffee-drinkers-heavydrinker:
+#    image: docker.io/bitnami/postgresql-repmgr:13-debian-10
+#    ports:
+#      - 5432
+#    volumes:
+#      - pg-coffee-drinkers-heavydrinker-data:/bitnami/postgresql
+#    networks:
+#      - database
+#    environment:
+#      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+#      - POSTGRESQL_USERNAME=customuser
+#      - POSTGRESQL_PASSWORD=custompassword
+#      - POSTGRESQL_DATABASE=customdatabase
 
   # End list of services
 
@@ -357,6 +403,7 @@ volumes:
   pg-caffeine-manager-machine-data:
   pg-caffeine-manager-stats-data:
   pg-caffeine-manager-user-data:
+  pg-coffee-drinkers-heavydrinker-data:
 
 networks:
   default:

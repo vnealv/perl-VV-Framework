@@ -1,0 +1,9 @@
+requires 'IO::Async::Loop';
+
+requires 'Pod::Usage';
+requires 'Getopt::Long';
+requires 'Syntax::Keyword::Try';
+requires 'YAML::XS';
+requires 'Log::Any';
+
+requires 'String::Random';
