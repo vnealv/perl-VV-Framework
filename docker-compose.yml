@@ -32,7 +32,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-0:/bitnami
     environment:
@@ -49,7 +48,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-1:/bitnami
     environment:
@@ -65,7 +63,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-2:/bitnami
     environment:
@@ -81,7 +78,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-3:/bitnami
     environment:
@@ -97,7 +93,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-4:/bitnami
     environment:
@@ -113,7 +108,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-5:/bitnami
     environment:

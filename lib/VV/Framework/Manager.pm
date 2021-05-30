@@ -29,7 +29,11 @@ async method link_requests () {
             my $method = $message->args->{method};
             if ( defined $method and $service->can($method) ) {
                 my $response = await $service->$method($message);
-                await $self->reply_success($service_name, $message, $response);
+                unless (exists $response->{error}) {
+                    await $self->reply_success($service_name, $message, $response);
+                } else {
+                    await $self->reply_error($service_name, $message, $response->{error});
+                }
             } else {
                 $log->warnf('Error RPC method not found | message: %s', $message);
                 await $self->reply_error($service_name, $message, {text => 'NotFound', code => 400});

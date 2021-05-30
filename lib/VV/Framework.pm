@@ -56,11 +56,14 @@ method _add_to_loop($loop) {
     $self->add_child(
         $api = VV::Framework::API->new(transport => $transport, service_name => $service_name)
     );
+ 
+    $self->add_child(
+        $storage = VV::Framework::Storage->new(transport => $transport, service_name => $service_name)
+    );
 
     $self->add_child($service = $service->new() );
 
     $manager = VV::Framework::Manager->new(transport => $transport, service => $service, service_name => $service_name);
-    $storage = VV::Framework::Storage->new(transport => $transport, service_name => $service_name);
 
     $self->next::method($loop);
 }
@@ -71,7 +74,7 @@ async method run () {
     await $api->start;
     await $manager->link_requests;
     await $storage->start();
-    await $service->start($api);
+    await $service->start($api, $storage);
     while (1) {
         $log->warnf('sss running');
         await $self->loop->delay_future(after => 1);

@@ -57,7 +57,6 @@ services:
       service: redis-node
     networks:
       - redis
-      - default
     volumes:
       - redis-cluster_data-[% redis %]:/bitnami
     environment:
