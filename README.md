@@ -13,6 +13,12 @@ Giving the purpose of this Framework, It was mainly build with these packages:
 - IO::Async::Notifier
 - Object::Pad
 
+## Extra
+
+This framework also implements its own IO::Loop utilizing none blocking `epoll` calls for asynchronous performance.
+- Main VLoop class: `VV::Framework::Loop::VLoop`
+- Epoll Socket: `VV::Framework::Loop::Socket`
+- Example async http request that adds number to array while making request. `bin/vloop-example.pl`
 
 ### Structure
 
@@ -64,3 +70,4 @@ if you want to add/remove services. Just add the service package file.
 - Just add your service in `services` directory
 - run `perl bin/docker-compose-services.pl` in order to update `docker-compose.yml` file to reflect your changes.
 - then `docker-compose up -d` to apply it.
+
