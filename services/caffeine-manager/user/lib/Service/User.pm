@@ -8,7 +8,7 @@ use Future::AsyncAwait;
 use Log::Any qw($log);
 use Syntax::Keyword::Try;
 use JSON::MaybeUTF8 qw(:v1);
-use Future::Utils qw( fmap_void );
+use Future::Utils qw( fmap_void fmap_concat);
 
 has $vv;
 has $storage;
@@ -67,6 +67,33 @@ async method request ($message) {
             }, foreach => [keys %unique_values], concurrent => 4
         );
         return {id => $id};
+    } else {
+        return {error => {text => 'Wrong request METHOD please use PUT for this resource', code => 400 } };
+    }
+}
+
+async method list ($message) {
+    my $msg_as_hash = $message->as_hash;
+
+    # Need to move this to VV::Framework::Message class
+    my $request = decode_json_utf8($msg_as_hash->{args});
+    $log->warnf('GOT Request: %s', $request);
+
+    # Only accept PUT request
+    if ( $request->{type} eq 'GET' ) {
+        my %args = $request->{args}->%*;
+        @args{keys $request->{params}->%*} = values $request->{params}->%*;
+
+        my $latest_id = await $storage->latest_id('user');
+        my @users;
+        await fmap_void(
+            async sub {
+                my $id = shift;
+                my %user = await $storage->record_get('user', $id);
+                push @users, \%user;
+            }, foreach => [1 .. $latest_id], concurrent => 4
+        );
+        return {users => \@users};
     } else {
         return {error => {text => 'Wrong request METHOD please use PUT for this resource', code => 400 } };
     }

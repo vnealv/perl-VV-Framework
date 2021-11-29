@@ -166,7 +166,7 @@ async method new_id ($key) {
     await $redis->incr($r_prefix->($key.'-ID'));
 }
 
-async method latest_id ($key, $service) {
+async method latest_id ($key, $service = '') {
     await $redis->get($r_prefix->($key.'-ID', $service));
 }
 
